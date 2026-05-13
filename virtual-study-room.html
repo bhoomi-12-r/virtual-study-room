@@ -1,0 +1,1665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Focus and Flow — Virtual Study Room</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --surface: #141720;
+    --card: #1a1e2e;
+    --accent: #f0b429;
+    --accent2: #e85d75;
+    --green: #43d9a3;
+    --blue: #4e9af1;
+    --text: #e8eaf0;
+    --muted: #6b7280;
+    --border: rgba(255,255,255,0.07);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Animated background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 600px 400px at 20% 20%, rgba(78,154,241,0.08) 0%, transparent 70%),
+      radial-gradient(ellipse 500px 350px at 80% 80%, rgba(232,93,117,0.07) 0%, transparent 70%),
+      radial-gradient(ellipse 400px 300px at 60% 20%, rgba(67,217,163,0.05) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* HEADER */
+  header {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 40px;
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(10px);
+    background: rgba(13,15,20,0.8);
+    position: sticky;
+    top: 0;
+  }
+
+  .logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.6rem;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+  }
+  .logo span { color: var(--accent); }
+
+  .header-actions { display: flex; gap: 12px; align-items: center; }
+
+  .btn {
+    padding: 10px 22px;
+    border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+  }
+  .btn-outline {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+  .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-primary {
+    background: var(--accent);
+    color: #0d0f14;
+    font-weight: 700;
+  }
+  .btn-primary:hover { background: #ffc947; transform: translateY(-1px); }
+
+  /* MAIN LAYOUT */
+  .app {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: 260px 1fr 300px;
+    grid-template-rows: auto;
+    gap: 0;
+    min-height: calc(100vh - 73px);
+  }
+
+  /* SIDEBAR */
+  .sidebar {
+    border-right: 1px solid var(--border);
+    padding: 24px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .sidebar-section {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 16px 12px 8px;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-size: 0.9rem;
+    font-weight: 400;
+    color: var(--muted);
+    border: 1px solid transparent;
+  }
+  .nav-item:hover { background: var(--card); color: var(--text); }
+  .nav-item.active {
+    background: rgba(240,180,41,0.1);
+    border-color: rgba(240,180,41,0.2);
+    color: var(--accent);
+  }
+  .nav-icon { font-size: 1.1rem; width: 22px; text-align: center; }
+
+  /* MAIN CONTENT */
+  .main {
+    padding: 32px 40px;
+    overflow-y: auto;
+  }
+
+  .page { display: none; animation: fadeIn 0.3s ease; }
+  .page.active { display: block; }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+  /* DASHBOARD */
+  .welcome {
+    margin-bottom: 32px;
+  }
+  .welcome h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.2rem;
+    font-weight: 900;
+    line-height: 1.2;
+    margin-bottom: 8px;
+  }
+  .welcome h1 em { font-style: normal; color: var(--accent); }
+  .welcome p { color: var(--muted); font-size: 0.95rem; }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+
+  .stat-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    transition: transform 0.2s, border-color 0.2s;
+  }
+  .stat-card:hover { transform: translateY(-2px); border-color: rgba(240,180,41,0.2); }
+  .stat-label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+  .stat-value { font-family: 'Space Mono', monospace; font-size: 2rem; font-weight: 700; }
+  .stat-value.gold { color: var(--accent); }
+  .stat-value.pink { color: var(--accent2); }
+  .stat-value.green { color: var(--green); }
+  .stat-sub { font-size: 0.75rem; color: var(--muted); margin-top: 4px; }
+
+  .section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ROOM CARDS */
+  .rooms-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+
+  .room-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .room-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    border-radius: 14px 14px 0 0;
+  }
+  .room-card.math::before { background: linear-gradient(90deg, var(--blue), var(--green)); }
+  .room-card.cs::before { background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+  .room-card.lit::before { background: linear-gradient(90deg, var(--accent2), var(--blue)); }
+  .room-card.physics::before { background: linear-gradient(90deg, var(--green), var(--accent)); }
+  .room-card:hover { transform: translateY(-3px); border-color: rgba(255,255,255,0.15); box-shadow: 0 12px 32px rgba(0,0,0,0.4); }
+
+  .room-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .room-meta { font-size: 0.8rem; color: var(--muted); display: flex; gap: 16px; }
+  .room-online { display: flex; align-items: center; gap: 6px; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.6;transform:scale(1.2)} }
+
+  .join-btn {
+    margin-top: 14px;
+    padding: 8px 18px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .join-btn:hover { background: var(--accent); color: #0d0f14; border-color: var(--accent); font-weight: 600; }
+
+  /* POMODORO TIMER */
+  .timer-section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px;
+    text-align: center;
+    margin-bottom: 28px;
+  }
+
+  .timer-display {
+    font-family: 'Space Mono', monospace;
+    font-size: 4.5rem;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: -0.02em;
+    line-height: 1;
+    margin: 16px 0;
+    text-shadow: 0 0 40px rgba(240,180,41,0.3);
+  }
+
+  .timer-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
+
+  .timer-modes {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+  .mode-btn {
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.2s;
+  }
+  .mode-btn.active { background: rgba(240,180,41,0.15); border-color: var(--accent); color: var(--accent); }
+  .mode-btn:hover { color: var(--text); }
+
+  .timer-controls { display: flex; gap: 12px; justify-content: center; }
+  .timer-btn {
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    font-size: 1.1rem;
+    transition: all 0.2s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .timer-btn.play { background: var(--accent); color: #0d0f14; }
+  .timer-btn.play:hover { transform: scale(1.1); box-shadow: 0 0 20px rgba(240,180,41,0.4); }
+  .timer-btn.reset { background: var(--card); border: 1px solid var(--border); color: var(--text); }
+  .timer-btn.reset:hover { border-color: var(--accent2); color: var(--accent2); }
+
+  .progress-ring-container {
+    position: relative;
+    width: 160px;
+    height: 160px;
+    margin: 0 auto;
+  }
+  .progress-ring { transform: rotate(-90deg); }
+  .progress-track { fill: none; stroke: rgba(255,255,255,0.05); stroke-width: 6; }
+  .progress-fill {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 6;
+    stroke-linecap: round;
+    stroke-dasharray: 440;
+    stroke-dashoffset: 0;
+    transition: stroke-dashoffset 1s linear;
+    filter: drop-shadow(0 0 6px rgba(240,180,41,0.6));
+  }
+  .timer-inner {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .timer-inner .timer-display { font-size: 2rem; margin: 0; }
+  .timer-inner .timer-label { margin-top: 4px; }
+
+  /* TASKS */
+  .task-input-wrap {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .task-input {
+    flex: 1;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .task-input:focus { border-color: var(--accent); }
+  .task-input::placeholder { color: var(--muted); }
+
+  .task-list { display: flex; flex-direction: column; gap: 8px; }
+
+  .task-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    transition: all 0.2s;
+    animation: slideIn 0.3s ease;
+  }
+  @keyframes slideIn { from{opacity:0;transform:translateX(-10px)} to{opacity:1;transform:none} }
+  .task-item:hover { border-color: rgba(255,255,255,0.12); }
+  .task-item.done { opacity: 0.5; }
+
+  .task-check {
+    width: 20px; height: 20px;
+    border-radius: 6px;
+    border: 2px solid var(--border);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .task-check.checked { background: var(--green); border-color: var(--green); }
+  .task-check.checked::after { content: '✓'; font-size: 0.7rem; color: #0d0f14; font-weight: 700; }
+
+  .task-text { flex: 1; font-size: 0.88rem; }
+  .task-item.done .task-text { text-decoration: line-through; color: var(--muted); }
+  .task-del {
+    background: none; border: none; color: var(--muted); cursor: pointer;
+    font-size: 0.8rem; padding: 4px; border-radius: 4px;
+    transition: color 0.2s;
+  }
+  .task-del:hover { color: var(--accent2); }
+
+  /* NOTES */
+  .notes-area {
+    width: 100%;
+    min-height: 220px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    line-height: 1.7;
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .notes-area:focus { border-color: var(--blue); }
+  .notes-toolbar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+  }
+  .fmt-btn {
+    padding: 6px 12px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 0.8rem;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.2s;
+  }
+  .fmt-btn:hover { border-color: var(--blue); color: var(--blue); }
+
+  /* FLASHCARDS */
+  .flashcard-container {
+    perspective: 1000px;
+    margin-bottom: 20px;
+  }
+  .flashcard {
+    width: 100%;
+    height: 220px;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 0.6s cubic-bezier(0.4,0,0.2,1);
+    cursor: pointer;
+  }
+  .flashcard.flipped { transform: rotateY(180deg); }
+  .card-face {
+    position: absolute;
+    inset: 0;
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px;
+    text-align: center;
+    backface-visibility: hidden;
+    border: 1px solid var(--border);
+  }
+  .card-front {
+    background: linear-gradient(135deg, #1a1e2e, #1e2235);
+    border-color: rgba(78,154,241,0.3);
+  }
+  .card-back {
+    background: linear-gradient(135deg, #1a2520, #1e2a20);
+    border-color: rgba(67,217,163,0.3);
+    transform: rotateY(180deg);
+  }
+  .card-tag {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+  .card-front .card-tag { color: var(--blue); }
+  .card-back .card-tag { color: var(--green); }
+  .card-content { font-size: 1.1rem; line-height: 1.5; }
+  .card-hint { font-size: 0.75rem; color: var(--muted); margin-top: 16px; }
+
+  .card-nav { display: flex; gap: 10px; justify-content: center; align-items: center; }
+  .card-nav button {
+    padding: 8px 20px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--text);
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.82rem;
+    transition: all 0.2s;
+  }
+  .card-nav button:hover { border-color: var(--accent); color: var(--accent); }
+  .card-counter {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--muted);
+    padding: 0 12px;
+  }
+
+  /* RIGHT PANEL */
+  .right-panel {
+    border-left: 1px solid var(--border);
+    padding: 24px 16px;
+    overflow-y: auto;
+  }
+
+  /* LEADERBOARD */
+  .leaderboard { margin-bottom: 24px; }
+  .lb-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    transition: background 0.15s;
+    cursor: default;
+  }
+  .lb-item:hover { background: var(--card); }
+  .lb-rank {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--muted);
+    width: 20px;
+    text-align: center;
+  }
+  .lb-rank.gold { color: #FFD700; }
+  .lb-rank.silver { color: #C0C0C0; }
+  .lb-rank.bronze { color: #CD7F32; }
+
+  .lb-avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.9rem;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .lb-name { flex: 1; font-size: 0.85rem; }
+  .lb-hrs {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--accent);
+  }
+
+  /* ACTIVITY */
+  .activity-feed { display: flex; flex-direction: column; gap: 10px; }
+  .activity-item {
+    display: flex;
+    gap: 10px;
+    padding: 10px;
+    background: var(--card);
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    font-size: 0.8rem;
+  }
+  .activity-icon { font-size: 1rem; flex-shrink: 0; }
+  .activity-text { flex: 1; color: var(--muted); line-height: 1.4; }
+  .activity-text strong { color: var(--text); }
+  .activity-time { font-size: 0.7rem; color: var(--muted); font-family: 'Space Mono', monospace; }
+
+  /* AMBIENT SOUNDS */
+  .ambient-section { margin-bottom: 24px; }
+  .sound-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .sound-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 14px 8px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--muted);
+    font-size: 0.75rem;
+  }
+  .sound-btn:hover { border-color: rgba(255,255,255,0.15); color: var(--text); }
+  .sound-btn.playing { background: rgba(78,154,241,0.1); border-color: var(--blue); color: var(--blue); }
+  .sound-icon { font-size: 1.4rem; }
+
+  /* CHAT */
+  .chat-container {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  .chat-header {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.85rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .chat-messages {
+    padding: 14px;
+    height: 200px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .chat-msg { display: flex; gap: 8px; }
+  .chat-avatar {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 700;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .chat-bubble { flex: 1; }
+  .chat-name { font-size: 0.7rem; color: var(--muted); margin-bottom: 2px; }
+  .chat-text { font-size: 0.82rem; line-height: 1.4; }
+
+  .chat-input-wrap {
+    padding: 10px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 8px;
+  }
+  .chat-input {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.82rem;
+    outline: none;
+  }
+  .chat-input:focus { border-color: var(--blue); }
+  .send-btn {
+    padding: 8px 14px;
+    background: var(--blue);
+    border: none;
+    border-radius: 8px;
+    color: white;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: opacity 0.2s;
+  }
+  .send-btn:hover { opacity: 0.85; }
+
+  /* BADGES */
+  .badges-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .badge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 14px 8px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    text-align: center;
+    transition: transform 0.2s;
+  }
+  .badge:hover { transform: translateY(-2px); }
+  .badge.locked { opacity: 0.35; filter: grayscale(1); }
+  .badge-icon { font-size: 1.6rem; }
+  .badge-name { font-size: 0.65rem; color: var(--muted); }
+
+  /* HABIT TRACKER */
+  .habit-list { display: flex; flex-direction: column; gap: 10px; }
+  .habit-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+  }
+  .habit-emoji { font-size: 1.2rem; }
+  .habit-info { flex: 1; }
+  .habit-name { font-size: 0.85rem; margin-bottom: 2px; }
+  .habit-days { display: flex; gap: 4px; }
+  .habit-day {
+    width: 20px; height: 20px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    font-size: 0.55rem;
+    font-family: 'Space Mono', monospace;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--muted);
+  }
+  .habit-day.done { background: var(--green); border-color: var(--green); color: #0d0f14; font-weight: 700; }
+  .habit-day.partial { background: rgba(240,180,41,0.3); border-color: var(--accent); color: var(--accent); }
+
+  /* SCHEDULE */
+  .schedule-list { display: flex; flex-direction: column; gap: 10px; }
+  .schedule-item {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    padding: 14px 16px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s;
+  }
+  .schedule-item:hover { transform: translateX(4px); }
+  .schedule-item::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+  }
+  .schedule-item.math::before { background: var(--blue); }
+  .schedule-item.cs::before { background: var(--accent); }
+  .schedule-item.break::before { background: var(--green); }
+  .schedule-item.lit::before { background: var(--accent2); }
+  .schedule-time {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+    white-space: nowrap;
+    padding-top: 2px;
+  }
+  .schedule-info { flex: 1; }
+  .schedule-name { font-size: 0.88rem; font-weight: 500; margin-bottom: 2px; }
+  .schedule-sub { font-size: 0.75rem; color: var(--muted); }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 20px;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    z-index: 1000;
+    transform: translateY(100px);
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+    max-width: 320px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast-icon { font-size: 1.1rem; }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  /* RESPONSIVE hint */
+  @media (max-width: 900px) {
+    .app { grid-template-columns: 1fr; }
+    .sidebar, .right-panel { display: none; }
+    .stats-grid { grid-template-columns: 1fr 1fr; }
+    .rooms-grid { grid-template-columns: 1fr; }
+  }
+
+  .tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 0.65rem;
+    font-family: 'Space Mono', monospace;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    background: rgba(240,180,41,0.1);
+    color: var(--accent);
+    border: 1px solid rgba(240,180,41,0.2);
+    margin-bottom: 10px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Study<span>Nest</span></div>
+  <div class="header-actions">
+    <span style="font-size:0.8rem;color:var(--muted)">👤 Bhoomi &nbsp;·&nbsp; BCA Sem-6</span>
+    <button class="btn btn-outline">Settings</button>
+    <button class="btn btn-primary">+ New Room</button>
+  </div>
+</header>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-section">Study Space</div>
+    <div class="nav-item active" onclick="showPage('dashboard')">
+      <span class="nav-icon">🏠</span> Dashboard
+    </div>
+    <div class="nav-item" onclick="showPage('rooms')">
+      <span class="nav-icon">🚪</span> Study Rooms
+    </div>
+    <div class="nav-item" onclick="showPage('timer')">
+      <span class="nav-icon">⏱️</span> Pomodoro Timer
+    </div>
+    <div class="nav-item" onclick="showPage('tasks')">
+      <span class="nav-icon">✅</span> Task Board
+    </div>
+    <div class="nav-item" onclick="showPage('notes')">
+      <span class="nav-icon">📝</span> Notes
+    </div>
+    <div class="nav-item" onclick="showPage('flashcards')">
+      <span class="nav-icon">🃏</span> Flashcards
+    </div>
+    <div class="nav-item" onclick="showPage('schedule')">
+      <span class="nav-icon">📅</span> Schedule
+    </div>
+    <div class="nav-item" onclick="showPage('habits')">
+      <span class="nav-icon">🔥</span> Habit Tracker
+    </div>
+    <div class="nav-item" onclick="showPage('badges')">
+      <span class="nav-icon">🏆</span> Achievements
+    </div>
+
+    <div class="sidebar-section" style="margin-top:auto">Quick Info</div>
+    <div style="padding:12px;background:var(--card);border-radius:12px;border:1px solid var(--border);font-size:0.78rem;color:var(--muted);line-height:1.6">
+      🎓 BCA — Bachelor of Computer Applications<br>
+      📍 Virtual Study Room Project<br>
+      👥 42 students online now
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="welcome">
+        <div class="tag">Good Evening</div>
+        <h1>Welcome  👋</h1>
+        <p>You've studied 3h 20m today. Keep going — you're on a 7-day streak!</p>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Today's Focus</div>
+          <div class="stat-value gold">3:20</div>
+          <div class="stat-sub">hrs studied today</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Current Streak</div>
+          <div class="stat-value pink">🔥 7</div>
+          <div class="stat-sub">consecutive days</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Tasks Done</div>
+          <div class="stat-value green">4/7</div>
+          <div class="stat-sub">tasks completed</div>
+        </div>
+      </div>
+
+      <div class="section-title">Active Study Rooms</div>
+      <div class="rooms-grid">
+        <div class="room-card math">
+          <div class="room-name">📐 Discrete Mathematics</div>
+          <div class="room-meta">
+            <div class="room-online"><div class="dot"></div> 8 online</div>
+            <div>Graph Theory session</div>
+          </div>
+          <button class="join-btn" onclick="showToast('🚀 Joining Discrete Math room...')">Join Room</button>
+        </div>
+        <div class="room-card cs">
+          <div class="room-name">💻 Data Structures</div>
+          <div class="room-meta">
+            <div class="room-online"><div class="dot"></div> 12 online</div>
+            <div>Trees & Graphs</div>
+          </div>
+          <button class="join-btn" onclick="showToast('🚀 Joining Data Structures room...')">Join Room</button>
+        </div>
+        <div class="room-card lit">
+          <div class="room-name">📚 Business Communication</div>
+          <div class="room-meta">
+            <div class="room-online"><div class="dot"></div> 5 online</div>
+            <div>Report writing</div>
+          </div>
+          <button class="join-btn" onclick="showToast('🚀 Joining Business Comm room...')">Join Room</button>
+        </div>
+        <div class="room-card physics">
+          <div class="room-name">🔒 DBMS Lab</div>
+          <div class="room-meta">
+            <div class="room-online"><div class="dot"></div> 9 online</div>
+            <div>SQL Queries practice</div>
+          </div>
+          <button class="join-btn" onclick="showToast('🚀 Joining DBMS room...')">Join Room</button>
+        </div>
+      </div>
+
+      <div class="section-title">Today's Schedule</div>
+      <div class="schedule-list">
+        <div class="schedule-item math">
+          <div class="schedule-time">09:00 – 10:30</div>
+          <div class="schedule-info">
+            <div class="schedule-name">Discrete Mathematics</div>
+            <div class="schedule-sub">Chapter 5: Graph Theory · 3 problems pending</div>
+          </div>
+          <span style="font-size:0.7rem;color:var(--green)">✓ Done</span>
+        </div>
+        <div class="schedule-item cs">
+          <div class="schedule-time">11:00 – 12:30</div>
+          <div class="schedule-info">
+            <div class="schedule-name">Data Structures & Algorithms</div>
+            <div class="schedule-sub">BST Implementation · Assignment due tomorrow</div>
+          </div>
+          <span style="font-size:0.7rem;color:var(--accent)">Now</span>
+        </div>
+        <div class="schedule-item break">
+          <div class="schedule-time">12:30 – 13:30</div>
+          <div class="schedule-info">
+            <div class="schedule-name">Lunch Break 🥗</div>
+            <div class="schedule-sub">Take a walk, rest your eyes</div>
+          </div>
+        </div>
+        <div class="schedule-item lit">
+          <div class="schedule-time">14:00 – 15:30</div>
+          <div class="schedule-info">
+            <div class="schedule-name">DBMS Lab Practice</div>
+            <div class="schedule-sub">Joins, Views, Stored Procedures</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STUDY ROOMS -->
+    <div class="page" id="page-rooms">
+      <div class="welcome">
+        <div class="tag">Study Rooms</div>
+        <h1>Find Your <em>Focus</em> Space</h1>
+        <p>Join subject-specific rooms or create a private room with friends.</p>
+      </div>
+      <div class="rooms-grid">
+        <div class="room-card math">
+          <div class="room-name">📐 Discrete Mathematics</div>
+          <div class="room-meta">
+            <div class="room-online"><div class="dot"></div> 8 online</div>
+            <div>Silent study mode</div>
+          </div>
+          <div style="font-size:0.78rem;color:var(--muted);margin-top:10px">Today's topic: Graph Theory & Euler Paths</div>
+          <button class="join-btn" onclick="showToast('🚀 Joining room...')">Join Room</button>
+        </div>
+        <div class="room-card cs">
+          <div class="room-name">💻 Data Structures</div>
+          <div class="room-meta">
+            <div class="room-online"><div class="dot"></div> 12 online</div>
+            <div>Discussion allowed</div>
+          </div>
+          <div style="font-size:0.78rem;color:var(--muted);margin-top:10px">Binary Trees, AVL Trees, Heaps</div>
+          <button class="join-btn" onclick="showToast('🚀 Joining room...')">Join Room</button>
+        </div>
+        <div class="room-card lit">
+          <div class="room-name">📚 Business Comm</div>
+          <div class="room-meta">
+            <div class="room-online"><div class="dot"></div> 5 online</div>
+            <div>Collaboration mode</div>
+          </div>
+          <div style="font-size:0.78rem;color:var(--muted);margin-top:10px">Report writing workshop</div>
+          <button class="join-btn" onclick="showToast('🚀 Joining room...')">Join Room</button>
+        </div>
+        <div class="room-card physics">
+          <div class="room-name">🔒 DBMS Lab</div>
+          <div class="room-meta">
+            <div class="room-online"><div class="dot"></div> 9 online</div>
+            <div>Lab practice session</div>
+          </div>
+          <div style="font-size:0.78rem;color:var(--muted);margin-top:10px">SQL Queries, Normalization</div>
+          <button class="join-btn" onclick="showToast('🚀 Joining room...')">Join Room</button>
+        </div>
+        <div class="room-card cs" style="grid-column: span 2;">
+          <div class="room-name">🎯 BCA Semester 6 — Open Room</div>
+          <div class="room-meta">
+            <div class="room-online"><div class="dot"></div> 31 online</div>
+            <div>All subjects · Open discussion</div>
+          </div>
+          <div style="font-size:0.78rem;color:var(--muted);margin-top:10px">General study and Q&A for all BCA Sem-4 students</div>
+          <button class="join-btn" onclick="showToast('🚀 Joining BCA Sem-6 room...')">Join Main Room</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- POMODORO TIMER -->
+    <div class="page" id="page-timer">
+      <div class="welcome">
+        <div class="tag">Focus Timer</div>
+        <h1>Pomodoro <em>Timer</em></h1>
+        <p>Work in focused intervals to maximize your productivity.</p>
+      </div>
+
+      <div class="timer-section">
+        <div class="timer-modes">
+          <button class="mode-btn active" onclick="setMode('pomodoro',25,this)">🍅 Pomodoro</button>
+          <button class="mode-btn" onclick="setMode('short',5,this)">☕ Short Break</button>
+          <button class="mode-btn" onclick="setMode('long',15,this)">🌴 Long Break</button>
+        </div>
+
+        <div class="progress-ring-container">
+          <svg class="progress-ring" width="160" height="160" viewBox="0 0 160 160">
+            <circle class="progress-track" cx="80" cy="80" r="70"/>
+            <circle class="progress-fill" id="progressCircle" cx="80" cy="80" r="70"/>
+          </svg>
+          <div class="timer-inner">
+            <div class="timer-display" id="timerDisplay">25:00</div>
+            <div class="timer-label" id="timerLabel">FOCUS TIME</div>
+          </div>
+        </div>
+
+        <div class="timer-controls" style="margin-top:20px">
+          <button class="timer-btn reset" onclick="resetTimer()">↺</button>
+          <button class="timer-btn play" id="playBtn" onclick="toggleTimer()">▶</button>
+        </div>
+
+        <div style="margin-top:20px;font-size:0.78rem;color:var(--muted)">
+          Sessions completed today: <span style="color:var(--accent);font-family:'Space Mono',monospace" id="sessionCount">3</span>
+        </div>
+      </div>
+
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px">
+        <div class="section-title" style="margin-bottom:12px">How Pomodoro Works</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div style="background:var(--surface);border-radius:10px;padding:14px;font-size:0.82rem;line-height:1.6">
+            <div style="font-size:1.2rem;margin-bottom:8px">🍅</div>
+            <strong style="color:var(--accent)">25 min Focus</strong><br>
+            <span style="color:var(--muted)">Work deeply on one task without distractions</span>
+          </div>
+          <div style="background:var(--surface);border-radius:10px;padding:14px;font-size:0.82rem;line-height:1.6">
+            <div style="font-size:1.2rem;margin-bottom:8px">☕</div>
+            <strong style="color:var(--green)">5 min Break</strong><br>
+            <span style="color:var(--muted)">Rest your brain, stretch, hydrate</span>
+          </div>
+          <div style="background:var(--surface);border-radius:10px;padding:14px;font-size:0.82rem;line-height:1.6">
+            <div style="font-size:1.2rem;margin-bottom:8px">🔁</div>
+            <strong style="color:var(--blue)">Repeat × 4</strong><br>
+            <span style="color:var(--muted)">Complete 4 pomodoros in a cycle</span>
+          </div>
+          <div style="background:var(--surface);border-radius:10px;padding:14px;font-size:0.82rem;line-height:1.6">
+            <div style="font-size:1.2rem;margin-bottom:8px">🌴</div>
+            <strong style="color:var(--accent2)">15 min Long Break</strong><br>
+            <span style="color:var(--muted)">Recharge after 4 cycles</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TASK BOARD -->
+    <div class="page" id="page-tasks">
+      <div class="welcome">
+        <div class="tag">Task Board</div>
+        <h1>Your <em>To-Do</em> List</h1>
+        <p>Capture, track, and complete your study tasks.</p>
+      </div>
+
+      <div class="task-input-wrap">
+        <input class="task-input" id="taskInput" placeholder="Add a new task... (e.g. Complete DSA Assignment)" onkeypress="handleTaskKey(event)">
+        <button class="btn btn-primary" onclick="addTask()">+ Add</button>
+      </div>
+
+      <div class="task-list" id="taskList"></div>
+    </div>
+
+    <!-- NOTES -->
+    <div class="page" id="page-notes">
+      <div class="welcome">
+        <div class="tag">Notes</div>
+        <h1>Capture Your <em>Ideas</em></h1>
+        <p>Write, organize, and review your study notes.</p>
+      </div>
+
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:20px">
+        <div style="display:flex;gap:10px;margin-bottom:14px;align-items:center">
+          <input class="task-input" placeholder="Note title..." style="font-size:1rem;font-weight:600" id="noteTitle">
+          <button class="btn btn-primary" onclick="saveNote()">Save 💾</button>
+        </div>
+        <div class="notes-toolbar">
+          <button class="fmt-btn" onclick="insertFmt('**','**','Bold')"><b>B</b></button>
+          <button class="fmt-btn" onclick="insertFmt('*','*','Italic')"><i>I</i></button>
+          <button class="fmt-btn" onclick="insertFmt('# ','','H1')">H1</button>
+          <button class="fmt-btn" onclick="insertFmt('## ','','H2')">H2</button>
+          <button class="fmt-btn" onclick="insertFmt('- ','','List')">• List</button>
+          <button class="fmt-btn" onclick="insertFmt('`','`','Code')">Code</button>
+          <button class="fmt-btn" onclick="insertFmt('> ','','Quote')">❝ Quote</button>
+          <button class="fmt-btn" onclick="clearNote()">🗑 Clear</button>
+        </div>
+        <textarea class="notes-area" id="notesArea" placeholder="Start writing your notes here...
+
+📌 Tip: Use markdown-style formatting
+• - for bullet points
+# for headings
+**text** for bold"></textarea>
+      </div>
+
+      <div id="savedNotes" style="display:flex;flex-direction:column;gap:10px"></div>
+    </div>
+
+    <!-- FLASHCARDS -->
+    <div class="page" id="page-flashcards">
+      <div class="welcome">
+        <div class="tag">Flashcards</div>
+        <h1>Quick <em>Recall</em> Practice</h1>
+        <p>Flip cards to test your memory. Click to reveal the answer.</p>
+      </div>
+
+      <div class="flashcard-container">
+        <div class="flashcard" id="flashcard" onclick="flipCard()">
+          <div class="card-face card-front">
+            <div class="card-tag">Question</div>
+            <div class="card-content" id="cardQuestion"></div>
+            <div class="card-hint">Click to reveal answer</div>
+          </div>
+          <div class="card-face card-back">
+            <div class="card-tag">Answer</div>
+            <div class="card-content" id="cardAnswer"></div>
+            <div class="card-hint">Click to go back</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-nav">
+        <button onclick="prevCard()">← Prev</button>
+        <div class="card-counter" id="cardCounter">1 / 6</div>
+        <button onclick="nextCard()">Next →</button>
+      </div>
+
+      <div style="margin-top:20px;display:flex;gap:10px;justify-content:center">
+        <button class="btn btn-outline" onclick="showToast('😕 Marked for review!')">😕 Hard</button>
+        <button class="btn btn-outline" onclick="showToast('😐 Got it partially!')">😐 Okay</button>
+        <button class="btn btn-primary" onclick="showToast('🎉 Great job!')">😄 Easy</button>
+      </div>
+    </div>
+
+    <!-- SCHEDULE -->
+    <div class="page" id="page-schedule">
+      <div class="welcome">
+        <div class="tag">Schedule</div>
+        <h1>Weekly <em>Planner</em></h1>
+        <p>Organize your study sessions for the week ahead.</p>
+      </div>
+      <div class="schedule-list">
+        <div class="schedule-item math"><div class="schedule-time">Mon 9:00</div><div class="schedule-info"><div class="schedule-name">Discrete Mathematics</div><div class="schedule-sub">Graph Theory · Chapter 5</div></div></div>
+        <div class="schedule-item cs"><div class="schedule-time">Mon 11:00</div><div class="schedule-info"><div class="schedule-name">Data Structures</div><div class="schedule-sub">BST & AVL Trees</div></div></div>
+        <div class="schedule-item lit"><div class="schedule-time">Tue 9:00</div><div class="schedule-info"><div class="schedule-name">Business Communication</div><div class="schedule-sub">Technical Report Writing</div></div></div>
+        <div class="schedule-item physics"><div class="schedule-time">Tue 14:00</div><div class="schedule-info"><div class="schedule-name">DBMS Lab</div><div class="schedule-sub">SQL Advanced Queries</div></div></div>
+        <div class="schedule-item cs"><div class="schedule-time">Wed 10:00</div><div class="schedule-info"><div class="schedule-name">Software Engineering</div><div class="schedule-sub">SDLC & UML Diagrams</div></div></div>
+        <div class="schedule-item math"><div class="schedule-time">Thu 9:00</div><div class="schedule-info"><div class="schedule-name">Numerical Methods</div><div class="schedule-sub">Newton-Raphson Method</div></div></div>
+        <div class="schedule-item lit"><div class="schedule-time">Fri 14:00</div><div class="schedule-info"><div class="schedule-name">Web Development</div><div class="schedule-sub">JavaScript & DOM</div></div></div>
+      </div>
+    </div>
+
+    <!-- HABITS -->
+    <div class="page" id="page-habits">
+      <div class="welcome">
+        <div class="tag">Habit Tracker</div>
+        <h1>Build Study <em>Habits</em></h1>
+        <p>Track daily habits that support your learning journey.</p>
+      </div>
+      <div class="habit-list">
+        <div class="habit-item">
+          <div class="habit-emoji">📖</div>
+          <div class="habit-info">
+            <div class="habit-name">Read for 30 mins</div>
+            <div class="habit-days">
+              <div class="habit-day done">M</div>
+              <div class="habit-day done">T</div>
+              <div class="habit-day done">W</div>
+              <div class="habit-day done">T</div>
+              <div class="habit-day partial">F</div>
+              <div class="habit-day">S</div>
+              <div class="habit-day">S</div>
+            </div>
+          </div>
+          <button onclick="showToast('✅ Habit logged!')" style="background:var(--green);border:none;border-radius:8px;padding:8px 14px;color:#0d0f14;cursor:pointer;font-size:0.8rem;font-weight:600;font-family:DM Sans">Log ✓</button>
+        </div>
+        <div class="habit-item">
+          <div class="habit-emoji">💻</div>
+          <div class="habit-info">
+            <div class="habit-name">Code for 1 hour</div>
+            <div class="habit-days">
+              <div class="habit-day done">M</div>
+              <div class="habit-day done">T</div>
+              <div class="habit-day done">W</div>
+              <div class="habit-day">T</div>
+              <div class="habit-day">F</div>
+              <div class="habit-day">S</div>
+              <div class="habit-day">S</div>
+            </div>
+          </div>
+          <button onclick="showToast('✅ Habit logged!')" style="background:var(--green);border:none;border-radius:8px;padding:8px 14px;color:#0d0f14;cursor:pointer;font-size:0.8rem;font-weight:600;font-family:DM Sans">Log ✓</button>
+        </div>
+        <div class="habit-item">
+          <div class="habit-emoji">🏃</div>
+          <div class="habit-info">
+            <div class="habit-name">Exercise / Walk</div>
+            <div class="habit-days">
+              <div class="habit-day done">M</div>
+              <div class="habit-day">T</div>
+              <div class="habit-day done">W</div>
+              <div class="habit-day done">T</div>
+              <div class="habit-day">F</div>
+              <div class="habit-day">S</div>
+              <div class="habit-day">S</div>
+            </div>
+          </div>
+          <button onclick="showToast('✅ Habit logged!')" style="background:var(--green);border:none;border-radius:8px;padding:8px 14px;color:#0d0f14;cursor:pointer;font-size:0.8rem;font-weight:600;font-family:DM Sans">Log ✓</button>
+        </div>
+        <div class="habit-item">
+          <div class="habit-emoji">💧</div>
+          <div class="habit-info">
+            <div class="habit-name">Drink 8 glasses of water</div>
+            <div class="habit-days">
+              <div class="habit-day done">M</div>
+              <div class="habit-day done">T</div>
+              <div class="habit-day done">W</div>
+              <div class="habit-day done">T</div>
+              <div class="habit-day done">F</div>
+              <div class="habit-day">S</div>
+              <div class="habit-day">S</div>
+            </div>
+          </div>
+          <button onclick="showToast('✅ Habit logged!')" style="background:var(--green);border:none;border-radius:8px;padding:8px 14px;color:#0d0f14;cursor:pointer;font-size:0.8rem;font-weight:600;font-family:DM Sans">Log ✓</button>
+        </div>
+        <div class="habit-item">
+          <div class="habit-emoji">📝</div>
+          <div class="habit-info">
+            <div class="habit-name">Review flashcards</div>
+            <div class="habit-days">
+              <div class="habit-day done">M</div>
+              <div class="habit-day done">T</div>
+              <div class="habit-day">W</div>
+              <div class="habit-day done">T</div>
+              <div class="habit-day">F</div>
+              <div class="habit-day">S</div>
+              <div class="habit-day">S</div>
+            </div>
+          </div>
+          <button onclick="showToast('✅ Habit logged!')" style="background:var(--green);border:none;border-radius:8px;padding:8px 14px;color:#0d0f14;cursor:pointer;font-size:0.8rem;font-weight:600;font-family:DM Sans">Log ✓</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ACHIEVEMENTS -->
+    <div class="page" id="page-badges">
+      <div class="welcome">
+        <div class="tag">Achievements</div>
+        <h1>Your <em>Badges</em></h1>
+        <p>Unlock badges by reaching study milestones.</p>
+      </div>
+      <div class="badges-grid">
+        <div class="badge"><div class="badge-icon">🔥</div><div class="badge-name">7-Day Streak</div></div>
+        <div class="badge"><div class="badge-icon">⏰</div><div class="badge-name">10h Club</div></div>
+        <div class="badge"><div class="badge-icon">🌅</div><div class="badge-name">Early Bird</div></div>
+        <div class="badge"><div class="badge-icon">🌙</div><div class="badge-name">Night Owl</div></div>
+        <div class="badge"><div class="badge-icon">🃏</div><div class="badge-name">Card Master</div></div>
+        <div class="badge locked"><div class="badge-icon">💎</div><div class="badge-name">30-Day Streak</div></div>
+        <div class="badge locked"><div class="badge-icon">🚀</div><div class="badge-name">100h Club</div></div>
+        <div class="badge locked"><div class="badge-icon">👑</div><div class="badge-name">Top Studier</div></div>
+        <div class="badge locked"><div class="badge-icon">🎯</div><div class="badge-name">Perfect Week</div></div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- RIGHT PANEL -->
+  <aside class="right-panel">
+    <!-- AMBIENT SOUNDS -->
+    <div class="section-title" style="margin-bottom:14px;font-size:0.9rem">🎵 Ambient Sounds</div>
+    <div class="ambient-section">
+      <div class="sound-grid">
+        <button class="sound-btn" onclick="toggleSound(this,'🌧️ Rain')"><div class="sound-icon">🌧️</div>Rain</button>
+        <button class="sound-btn" onclick="toggleSound(this,'☕ Café')"><div class="sound-icon">☕</div>Café</button>
+        <button class="sound-btn" onclick="toggleSound(this,'🌊 Ocean')"><div class="sound-icon">🌊</div>Ocean</button>
+        <button class="sound-btn" onclick="toggleSound(this,'🌲 Forest')"><div class="sound-icon">🌲</div>Forest</button>
+      </div>
+    </div>
+
+    <!-- LIVE CHAT -->
+    <div class="section-title" style="margin-bottom:14px;font-size:0.9rem">💬 Room Chat</div>
+    <div class="chat-container" style="margin-bottom:24px">
+      <div class="chat-header">
+        <div class="dot"></div> Data Structures Room
+      </div>
+      <div class="chat-messages" id="chatMessages">
+        <div class="chat-msg">
+          <div class="chat-avatar" style="background:rgba(78,154,241,0.2);color:var(--blue)">P</div>
+          <div class="chat-bubble">
+            <div class="chat-name">Priya · 2m ago</div>
+            <div class="chat-text">Can someone explain AVL rotations? 😅</div>
+          </div>
+        </div>
+        <div class="chat-msg">
+          <div class="chat-avatar" style="background:rgba(67,217,163,0.2);color:var(--green)">R</div>
+          <div class="chat-bubble">
+            <div class="chat-name">Rahul · 1m ago</div>
+            <div class="chat-text">Sure! It's when the balance factor exceeds ±1 after insertion 👍</div>
+          </div>
+        </div>
+        <div class="chat-msg">
+          <div class="chat-avatar" style="background:rgba(232,93,117,0.2);color:var(--accent2)">S</div>
+          <div class="chat-bubble">
+            <div class="chat-name">Sneha · just now</div>
+            <div class="chat-text">Sharing a great YouTube link for this!</div>
+          </div>
+        </div>
+      </div>
+      <div class="chat-input-wrap">
+        <input class="chat-input" id="chatInput" placeholder="Message..." onkeypress="handleChat(event)">
+        <button class="send-btn" onclick="sendChat()">→</button>
+      </div>
+    </div>
+
+    <!-- LEADERBOARD -->
+    <div class="section-title" style="margin-bottom:14px;font-size:0.9rem">🏆 Today's Leaders</div>
+    <div class="leaderboard">
+      <div class="lb-item">
+        <div class="lb-rank gold">1</div>
+        <div class="lb-avatar" style="background:rgba(255,215,0,0.2);color:#FFD700">R</div>
+        <div class="lb-name">Rahul S.</div>
+        <div class="lb-hrs">6:42</div>
+      </div>
+      <div class="lb-item">
+        <div class="lb-rank silver">2</div>
+        <div class="lb-avatar" style="background:rgba(192,192,192,0.2);color:#C0C0C0">P</div>
+        <div class="lb-name">Priya M.</div>
+        <div class="lb-hrs">5:30</div>
+      </div>
+      <div class="lb-item">
+        <div class="lb-rank bronze">3</div>
+        <div class="lb-avatar" style="background:rgba(205,127,50,0.2);color:#CD7F32">A</div>
+        <div class="lb-name">Arjun K. (You)</div>
+        <div class="lb-hrs">3:20</div>
+      </div>
+      <div class="lb-item">
+        <div class="lb-rank">4</div>
+        <div class="lb-avatar" style="background:rgba(78,154,241,0.2);color:var(--blue)">S</div>
+        <div class="lb-name">Sneha R.</div>
+        <div class="lb-hrs">2:55</div>
+      </div>
+      <div class="lb-item">
+        <div class="lb-rank">5</div>
+        <div class="lb-avatar" style="background:rgba(240,180,41,0.2);color:var(--accent)">K</div>
+        <div class="lb-name">Karan D.</div>
+        <div class="lb-hrs">2:10</div>
+      </div>
+    </div>
+
+    <!-- ACTIVITY -->
+    <div class="section-title" style="margin-bottom:14px;font-size:0.9rem">⚡ Live Activity</div>
+    <div class="activity-feed" id="activityFeed">
+      <div class="activity-item">
+        <div class="activity-icon">📖</div>
+        <div>
+          <div class="activity-text"><strong>Priya</strong> joined Discrete Math room</div>
+          <div class="activity-time">2 min ago</div>
+        </div>
+      </div>
+      <div class="activity-item">
+        <div class="activity-icon">✅</div>
+        <div>
+          <div class="activity-text"><strong>Rahul</strong> completed 5 pomodoros today!</div>
+          <div class="activity-time">5 min ago</div>
+        </div>
+      </div>
+      <div class="activity-item">
+        <div class="activity-icon">🏆</div>
+        <div>
+          <div class="activity-text"><strong>Sneha</strong> earned the "7-Day Streak" badge</div>
+          <div class="activity-time">12 min ago</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <span class="toast-icon">✨</span>
+  <span id="toastMsg">Action completed!</span>
+</div>
+
+<script>
+  // NAVIGATION
+  function showPage(id) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById('page-' + id).classList.add('active');
+    event.currentTarget.classList.add('active');
+  }
+
+  // TOAST
+  let toastTimeout;
+  function showToast(msg) {
+    clearTimeout(toastTimeout);
+    const t = document.getElementById('toast');
+    document.getElementById('toastMsg').textContent = msg;
+    t.classList.add('show');
+    toastTimeout = setTimeout(() => t.classList.remove('show'), 3000);
+  }
+
+  // POMODORO TIMER
+  let timerSecs = 25 * 60;
+  let totalSecs = 25 * 60;
+  let timerRunning = false;
+  let timerInterval;
+  let sessions = 3;
+
+  function updateTimerDisplay() {
+    const m = Math.floor(timerSecs / 60).toString().padStart(2,'0');
+    const s = (timerSecs % 60).toString().padStart(2,'0');
+    document.getElementById('timerDisplay').textContent = `${m}:${s}`;
+    const circle = document.getElementById('progressCircle');
+    const pct = timerSecs / totalSecs;
+    const circumference = 440;
+    circle.style.strokeDashoffset = circumference * (1 - pct);
+  }
+
+  function toggleTimer() {
+    const btn = document.getElementById('playBtn');
+    if (timerRunning) {
+      clearInterval(timerInterval);
+      timerRunning = false;
+      btn.textContent = '▶';
+    } else {
+      timerRunning = true;
+      btn.textContent = '⏸';
+      timerInterval = setInterval(() => {
+        if (timerSecs > 0) {
+          timerSecs--;
+          updateTimerDisplay();
+        } else {
+          clearInterval(timerInterval);
+          timerRunning = false;
+          btn.textContent = '▶';
+          sessions++;
+          document.getElementById('sessionCount').textContent = sessions;
+          showToast('🎉 Session complete! Time for a break.');
+        }
+      }, 1000);
+    }
+  }
+
+  function resetTimer() {
+    clearInterval(timerInterval);
+    timerRunning = false;
+    document.getElementById('playBtn').textContent = '▶';
+    timerSecs = totalSecs;
+    updateTimerDisplay();
+  }
+
+  function setMode(mode, mins, btn) {
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const labels = { pomodoro: 'FOCUS TIME', short: 'SHORT BREAK', long: 'LONG BREAK' };
+    document.getElementById('timerLabel').textContent = labels[mode];
+    clearInterval(timerInterval);
+    timerRunning = false;
+    document.getElementById('playBtn').textContent = '▶';
+    timerSecs = totalSecs = mins * 60;
+    const c = document.getElementById('progressCircle');
+    c.style.stroke = mode === 'pomodoro' ? 'var(--accent)' : mode === 'short' ? 'var(--green)' : 'var(--blue)';
+    updateTimerDisplay();
+  }
+
+  updateTimerDisplay();
+
+  // TASKS
+  const defaultTasks = [
+    { text: 'Complete DSA Assignment (BST)', done: false },
+    { text: 'Read Chapter 5: Graph Theory', done: true },
+    { text: 'Practice 10 SQL queries', done: false },
+    { text: 'Prepare for Business Comm presentation', done: false },
+    { text: 'Watch Software Engineering lecture', done: true },
+    { text: 'Solve 5 Discrete Math problems', done: false },
+    { text: 'Review Numerical Methods notes', done: false },
+  ];
+
+  function renderTasks() {
+    const list = document.getElementById('taskList');
+    list.innerHTML = '';
+    defaultTasks.forEach((task, i) => {
+      const item = document.createElement('div');
+      item.className = 'task-item' + (task.done ? ' done' : '');
+      item.innerHTML = `
+        <div class="task-check ${task.done ? 'checked' : ''}" onclick="toggleTask(${i})"></div>
+        <div class="task-text">${task.text}</div>
+        <button class="task-del" onclick="deleteTask(${i})">✕</button>
+      `;
+      list.appendChild(item);
+    });
+  }
+
+  function toggleTask(i) {
+    defaultTasks[i].done = !defaultTasks[i].done;
+    renderTasks();
+    if (defaultTasks[i].done) showToast('✅ Task completed!');
+  }
+
+  function deleteTask(i) {
+    defaultTasks.splice(i, 1);
+    renderTasks();
+    showToast('🗑️ Task deleted.');
+  }
+
+  function addTask() {
+    const input = document.getElementById('taskInput');
+    if (!input.value.trim()) return;
+    defaultTasks.unshift({ text: input.value.trim(), done: false });
+    input.value = '';
+    renderTasks();
+    showToast('✅ Task added!');
+  }
+
+  function handleTaskKey(e) { if (e.key === 'Enter') addTask(); }
+
+  renderTasks();
+
+  // NOTES
+  function insertFmt(before, after, name) {
+    const ta = document.getElementById('notesArea');
+    const s = ta.selectionStart, e = ta.selectionEnd;
+    const sel = ta.value.substring(s, e);
+    ta.value = ta.value.substring(0, s) + before + sel + after + ta.value.substring(e);
+    ta.focus();
+  }
+
+  function clearNote() {
+    document.getElementById('notesArea').value = '';
+    document.getElementById('noteTitle').value = '';
+  }
+
+  const savedNotes = [];
+  function saveNote() {
+    const title = document.getElementById('noteTitle').value || 'Untitled Note';
+    const content = document.getElementById('notesArea').value;
+    if (!content.trim()) { showToast('⚠️ Note is empty!'); return; }
+    savedNotes.unshift({ title, content, time: new Date().toLocaleTimeString() });
+    renderSavedNotes();
+    clearNote();
+    showToast('💾 Note saved!');
+  }
+
+  function renderSavedNotes() {
+    const c = document.getElementById('savedNotes');
+    c.innerHTML = savedNotes.map((n, i) => `
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <strong style="font-family:'Playfair Display',serif">${n.title}</strong>
+          <span style="font-size:0.7rem;color:var(--muted);font-family:'Space Mono',monospace">${n.time}</span>
+        </div>
+        <div style="font-size:0.82rem;color:var(--muted);line-height:1.6;white-space:pre-wrap">${n.content.substring(0,200)}${n.content.length > 200 ? '...' : ''}</div>
+      </div>
+    `).join('');
+  }
+
+  // FLASHCARDS
+  const cards = [
+    { q: 'What is a Binary Search Tree (BST)?', a: 'A BST is a binary tree where for each node, all left subtree values are less and all right subtree values are greater.' },
+    { q: 'What is the time complexity of searching in a balanced BST?', a: 'O(log n) — because each comparison eliminates half the remaining nodes.' },
+    { q: 'What is normalization in DBMS?', a: 'Normalization is the process of organizing a database to reduce redundancy and improve data integrity, following Normal Forms (1NF, 2NF, 3NF, BCNF).' },
+    { q: 'What does SQL SELECT DISTINCT do?', a: 'It returns only unique (distinct) values from the specified column, removing duplicate rows from the result set.' },
+    { q: 'What is a Euler Path in Graph Theory?', a: 'A path in a graph that visits every edge exactly once. It exists if and only if the graph has exactly 0 or 2 vertices with odd degree.' },
+    { q: 'What is the SDLC Waterfall Model?', a: 'A sequential software development model with phases: Requirements → Design → Implementation → Testing → Deployment → Maintenance, with no going back.' },
+  ];
+
+  let cardIndex = 0;
+  let isFlipped = false;
+
+  function showCard() {
+    const c = cards[cardIndex];
+    document.getElementById('cardQuestion').textContent = c.q;
+    document.getElementById('cardAnswer').textContent = c.a;
+    document.getElementById('cardCounter').textContent = `${cardIndex + 1} / ${cards.length}`;
+    isFlipped = false;
+    document.getElementById('flashcard').classList.remove('flipped');
+  }
+
+  function flipCard() {
+    isFlipped = !isFlipped;
+    document.getElementById('flashcard').classList.toggle('flipped', isFlipped);
+  }
+
+  function nextCard() { cardIndex = (cardIndex + 1) % cards.length; showCard(); }
+  function prevCard() { cardIndex = (cardIndex - 1 + cards.length) % cards.length; showCard(); }
+
+  showCard();
+
+  // AMBIENT SOUNDS
+  function toggleSound(btn, name) {
+    const wasPlaying = btn.classList.contains('playing');
+    document.querySelectorAll('.sound-btn').forEach(b => b.classList.remove('playing'));
+    if (!wasPlaying) {
+      btn.classList.add('playing');
+      showToast(`🎵 Playing: ${name}`);
+    } else {
+      showToast('🔇 Sound stopped.');
+    }
+  }
+
+  // CHAT
+  const colors = ['rgba(78,154,241,0.2)', 'rgba(67,217,163,0.2)', 'rgba(232,93,117,0.2)', 'rgba(240,180,41,0.2)'];
+  const textColors = ['var(--blue)', 'var(--green)', 'var(--accent2)', 'var(--accent)'];
+
+  function sendChat() {
+    const input = document.getElementById('chatInput');
+    const msg = input.value.trim();
+    if (!msg) return;
+    const container = document.getElementById('chatMessages');
+    const div = document.createElement('div');
+    div.className = 'chat-msg';
+    div.innerHTML = `
+      <div class="chat-avatar" style="background:rgba(240,180,41,0.2);color:var(--accent)">A</div>
+      <div class="chat-bubble">
+        <div class="chat-name">You · just now</div>
+        <div class="chat-text">${msg}</div>
+      </div>
+    `;
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+    input.value = '';
+
+    // Simulate reply
+    setTimeout(() => {
+      const names = ['Priya', 'Rahul', 'Sneha', 'Karan'];
+      const replies = ['Great question! 🤔', 'I was thinking the same thing!', 'Check page 142 in the textbook 📖', 'Prof mentioned this in last lecture!', 'Anyone have notes on this? 🙏', 'Let\'s discuss in the voice chat!'];
+      const name = names[Math.floor(Math.random()*names.length)];
+      const reply = replies[Math.floor(Math.random()*replies.length)];
+      const ci = Math.floor(Math.random()*4);
+      const d2 = document.createElement('div');
+      d2.className = 'chat-msg';
+      d2.innerHTML = `
+        <div class="chat-avatar" style="background:${colors[ci]};color:${textColors[ci]}">${name[0]}</div>
+        <div class="chat-bubble">
+          <div class="chat-name">${name} · just now</div>
+          <div class="chat-text">${reply}</div>
+        </div>
+      `;
+      container.appendChild(d2);
+      container.scrollTop = container.scrollHeight;
+    }, 1200);
+  }
+
+  function handleChat(e) { if (e.key === 'Enter') sendChat(); }
+</script>
+</body>
+</html>
